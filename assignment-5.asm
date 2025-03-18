@@ -1,197 +1,255 @@
-.ORIG x3000     	; Set the starting address of the program to x3000
-MAIN
-    ; Call the resultS function
-LOOP    LD R6, STACK_START  ; Load initial stack pointer (x4000)
-    JSR readS
-    JSR CHECK_PRIME
-    ADD R0, R0, #0
-    JSR resultS      ; Call the resultS function
-    BR LOOP
-    HALT           	; Halt the program TRAP x25
+        .ORIG x3000          ; Program starting address
 
-readS   
-        ; Write message on the console
-        LEA R0, STRING  ; Load adress of the string into R0
-        PUTS        ; Call TRAP x22 to print the string in R0
-        
+;------------------------------------------------------------
+; Main Program Entry Point
+MAIN    
+        LD   R6, STACK_START ; Load initial stack pointer (x4000)
+LOOP    
+        JSR  readS         ; Read a 2-digit number from the keyboard
+        JSR  CHECK_PRIME   ; Check if the number is prime
+        JSR  resultS       ; Display the corresponding message
+        BR   LOOP          ; Repeat indefinitely
+        HALT               ; Halt (should never be reached)
+
+;------------------------------------------------------------
+; Function: readS
+; Description: Reads a 2-digit number from the keyboard.
+;              Converts two ASCII digits into a numeric value.
+; Output: R0 contains the resulting integer.
+readS
+        ; Save registers
+        ADD R4, R7, #0
+        JSR PUSH
+        ADD R4, R2, #0
+        JSR PUSH
+        ADD R4, R1, #0
+        JSR PUSH
+        ; Prompt for input
+        LEA  R0, STRING
+        PUTS
+
         ; Read first digit
-        TRAP x23        ; Read character from keyboard and echo 
-        LD R1, NEG48    ; Load -48 from memory
-        ADD R0, R0, R1  ; Convert ASCII to numeric value by substracting 48
-        ST R0, DIG1  ; Store R0 in 
- 
+        TRAP x23           ; Read character (echoed)
+        LD   R1, NEG48     ; Load constant -48 (to convert ASCII)
+        ADD  R0, R0, R1    ; Convert ASCII to numeric digit
+        ST   R0, DIG1      ; Store first digit
+
         ; Read second digit
-        TRAP x23        ; Read character from keyboard and echo
-        ADD R0, R0, R1  ; Convert ASCII to numeric value by substracting 48
-        ST R0, DIG2  ; Store R0 in 
-        
-        ; Multiply the first integer to factor in the digit placement and add to second digit
-        LD R0, DIG1    ; Load the first digit to multiply
-        
-        AND R1, R1, #0  ; Clearing R1
-        AND R2, R2, #0  ; Clearing R2
+        TRAP x23           ; Read character (echoed)
+        ADD  R0, R0, R1    ; Convert ASCII to numeric digit
+        ST   R0, DIG2      ; Store second digit
 
-        ADD R1, R0, R0   ; R1 = R0 * 2  (x2)
-        ADD R2, R1, R1   ; R2 = R1 * 2  (x4)
-        ADD R2, R2, R2   ; R2 = R2 * 2  (x8)
-        ADD R2, R2, R1   ; R2 = (x8) + (x2) = x10
-        
-        LD R0, DIG2    ; Load the the sedond digit
-        ADD R0, R2, R0  ; add the second digit value to the multiplied first digit
+        ; Combine digits into a 2-digit number
+        LD   R0, DIG1      ; Load first digit
+        AND  R1, R1, #0    ; Clear R1
+        AND  R2, R2, #0    ; Clear R2
 
-        RET             ; Return from the function
+        ADD  R1, R0, R0    ; R1 = first digit * 2
+        ADD  R2, R1, R1    ; R2 = first digit * 4
+        ADD  R2, R2, R2    ; R2 = first digit * 8
+        ADD  R2, R2, R1    ; R2 = first digit * 10
 
+        LD   R0, DIG2      ; Load second digit
+        ADD  R0, R2, R0    ; Result = (10 * first digit) + second digit
+        ADD R4, R7, #0
+
+        ; Restore registers
+        JSR POP
+        ADD R1, R4, #0
+        JSR POP
+        ADD R2, R4, #0
+        JSR POP
+        ADD R7, R4, #0
+
+        RET
+
+;------------------------------------------------------------
 ; Function: resultS
-; Input: R0 (integer)
-; Output: Prints a message based on whether R0 is zero or non-zeroresultS   
-resultS       
-        BRz NOTPRIME    ; Branches to NOTPRIME if R0 == 0
-        
-        LEA R0, PRIME   ; LOAD PRIME message to R0
-        PUTS            ; Call TRAP x22 to print the string in R0
-        RET             ; Return from the function
-        
-NOTPRIME
-        LEA R0, NPRIME  ; LOAD NPRIME message to R0
-        PUTS            ; Call TRAP x22 to print the string in R0
-        RET             ; Return from the function    	
-;---------------------------
-; Checks if a number is prime. Takes input from R0 and returns 1 in R0 if true else returns 0 in R0
-CHECK_PRIME
-    ; Check if input number is 2
-    ADD R0, R0, #-2
-    BRz IS_PRIME_EARLY_RETURN
-    ADD R0, R0, #2
+; Description: Displays the prime/non-prime message.
+; Input: R0 (prime check result: non-zero means prime)
+resultS
+        ADD R0, R0, #0
+        BRz  NOTPRIME      ; Branch if result is zero (not prime)
 
-    ; Save registers in stack
-    ADD R4, R7, #0
-    JSR PUSH
-    ADD R4, R1, #0
-    JSR PUSH
-    ADD R4, R2, #0
-    JSR PUSH
-    ADD R4, R3, #0
-    JSR PUSH
-    ; Load divisor
-    AND R1, R1, #0
-    ADD R1, R1, #2
+        LEA  R0, PRIME     ; Load "prime" message address
+        PUTS
+        RET
+
+NOTPRIME
+        LEA  R0, NPRIME    ; Load "not prime" message address
+        PUTS
+        RET
+
+;------------------------------------------------------------
+; Function: CHECK_PRIME
+; Description: Checks if the number in R0 is prime.
+;              Returns 1 in R0 if prime, 0 otherwise.
+; Input: R0 (number to check)
+CHECK_PRIME
+        ; Special case: if number is 2, early return
+        ADD  R0, R0, #-2
+        BRz  IS_PRIME_EARLY_RETURN
+        ADD  R0, R0, #2
+
+        ; Save registers R7, R1, R2, R3 on the stack
+        ADD  R4, R7, #0
+        JSR  PUSH
+        ADD  R4, R1, #0
+        JSR  PUSH
+        ADD  R4, R2, #0
+        JSR  PUSH
+        ADD  R4, R3, #0
+        JSR  PUSH
+
+        ; Initialize divisor to 2 in R1
+        AND  R1, R1, #0
+        ADD  R1, R1, #2
+
 CHECK_LOOP
-    JSR SQUARE ; SQUARE Divisor^2
-    NOT R2, R2
-    ADD R2, R2, #1
-    ADD R2, R2, R0 ; Check if Divisor^2 <= N
-    BRn IS_PRIME
-    JSR MODULO
-    ADD R3, R3, #0
-    BRz NOT_PRIME
-    ADD R1, R1, #1
-    BR CHECK_LOOP
+        JSR  SQUARE        ; Compute square of divisor (result in R2)
+        ; Compare divisor^2 with N
+        NOT  R2, R2
+        ADD  R2, R2, #1
+        ADD  R2, R2, R0   ; If (divisor^2 - N) is negative then divisor^2 <= N
+        BRn  IS_PRIME     ; If so, no factor found yet: assume prime
+
+        JSR  MODULO       ; Compute N modulo divisor (result in R3)
+        ADD  R3, R3, #0   ; Check if remainder is zero
+        BRz  NOT_PRIME    ; If yes, number is not prime
+
+        ADD  R1, R1, #1   ; Increment divisor
+        BR   CHECK_LOOP
 
 IS_PRIME
-    AND R0, R0, #0
-    ADD R0, R0, #1
-    BR RESTORE_REGS
+        AND  R0, R0, #0
+        ADD  R0, R0, #1   ; Set R0 = 1 (prime)
+        BR   RESTORE_REGS
 
 NOT_PRIME
-    AND R0, R0, #0
-    BR RESTORE_REGS
+        AND  R0, R0, #0   ; Set R0 = 0 (not prime)
+        BR   RESTORE_REGS
 
 IS_PRIME_EARLY_RETURN
-    AND R0, R0, #0
-    ADD R0, R0, #0
-    RET
+        ; For number 2, set result as prime (or adjust as desired)
+        AND  R0, R0, #0
+        ADD  R0, R0, #0
+        RET
+
 RESTORE_REGS
-    JSR POP
-    ADD R3, R4, #0
+        JSR  POP
+        ADD  R3, R4, #0
 
-    JSR POP
-    ADD R2, R4, #0
+        JSR  POP
+        ADD  R2, R4, #0
 
-    JSR POP
-    ADD R1, R4, #0
+        JSR  POP
+        ADD  R1, R4, #0
 
-    JSR POP
-    ADD R7, R4, #0
-    RET
+        JSR  POP
+        ADD  R7, R4, #0
+        RET
 
-; Squaring value
+;------------------------------------------------------------
+; Function: SQUARE
+; Description: Computes the square of R1 by repeated addition.
+; Output: R2 contains R1 squared.
 SQUARE
-    ; Save the current return address (R7)
-    ADD R4, R7, #0
-    JSR PUSH
+        ; Save registers R7, R0, R1 on the stack
+        ADD  R4, R7, #0
+        JSR  PUSH
 
-    ADD R4, R0, #0
-    JSR PUSH
+        ADD  R4, R0, #0
+        JSR  PUSH
 
-    ADD R4, R1, #0
-    JSR PUSH
+        ADD  R4, R1, #0
+        JSR  PUSH
 
-    ADD R0, R1, #0
-    AND R2, R2, #0 ; Sum
+        ; Compute square: initialize R0 = R1 and clear R2
+        ADD  R0, R1, #0
+        AND  R2, R2, #0
+
 SQUARE_LOOP    
-    ADD R2, R2, R1
-    ADD R0, R0, #-1
-    BRp SQUARE_LOOP
-    
-    JSR POP
-    ADD R1, R4, #0
+        ADD  R2, R2, R1   ; Sum R1 repeatedly
+        ADD  R0, R0, #-1  ; Decrement counter
+        BRp  SQUARE_LOOP
 
-    JSR POP
-    ADD R0, R4, #0
+        ; Restore registers
+        JSR  POP
+        ADD  R1, R4, #0
 
-    JSR POP
-    ADD R7, R4, #0
-    RET
+        JSR  POP
+        ADD  R0, R4, #0
 
+        JSR  POP
+        ADD  R7, R4, #0
+        RET
+
+;------------------------------------------------------------
+; Function: MODULO
+; Description: Computes the remainder of R0 divided by R1.
+; Output: R3 contains the remainder.
 MODULO
-    ADD R4, R7, #0
-    JSR PUSH
+        ; Save registers R7, R0, R1 on the stack
+        ADD  R4, R7, #0
+        JSR  PUSH
 
-    ADD R4, R0, #0
-    JSR PUSH
+        ADD  R4, R0, #0
+        JSR  PUSH
 
-    ADD R4, R1, #0
-    JSR PUSH
+        ADD  R4, R1, #0
+        JSR  PUSH
 
-    AND R3, R3, #0 ; Remainder
-    NOT R1, R1 ; 
-    ADD R1, R1, #1 ; 2's complement
+        AND  R3, R3, #0   ; Clear R3 (remainder)
+
+        ; Compute two's complement of R1 for subtraction
+        NOT  R1, R1
+        ADD  R1, R1, #1
+
 MOD_LOOP
-    ADD R0, R0, R1
-    BRn END_MOD
-    ADD R3, R0, #0
-    BR MOD_LOOP
+        ADD  R0, R0, R1  ; Subtract divisor from dividend
+        BRn  END_MOD     ; If result negative, stop
+        ADD  R3, R0, #0  ; Update remainder
+        BR   MOD_LOOP
+
 END_MOD
-    JSR POP
-    ADD R1, R4, #0
+        ; Restore registers
+        JSR  POP
+        ADD  R1, R4, #0
 
-    JSR POP
-    ADD R0, R4, #0
+        JSR  POP
+        ADD  R0, R4, #0
 
-    JSR POP
-    ADD R7, R4, #0
-    RET
+        JSR  POP
+        ADD  R7, R4, #0
+        RET
+
+;------------------------------------------------------------
+; Function: PUSH
+; Description: Pushes the contents of R4 onto the stack.
 PUSH
-    ADD R6, R6, #-1      ; Decrement SP
-    STR R4, R6, #0       ; Store value from R4
-    RET
+        ADD  R6, R6, #-1   ; Decrement SP
+        STR  R4, R6, #0    ; Store R4 on stack
+        RET
+
+;------------------------------------------------------------
+; Function: POP
+; Description: Pops a value from the stack into R4.
 POP
-    LDR R4, R6, #0       ; Load value into R4
-    ADD R6, R6, #1       ; Increment SP
-    RET
+        LDR  R4, R6, #0    ; Load value from stack into R4
+        ADD  R6, R6, #1    ; Increment SP
+        RET
 
-; Stack Base Address
-STACK_START .FILL x4000
-MAX          .FILL xC005
-EMPTY        .FILL x4000
-PRIME   .STRINGZ "The number is prime\n" ; Storing the string to output "The number is prime"
-NPRIME  .STRINGZ "The number is not prime\n" ; Storing the string to output "The number is not prime"
-NUM     .FILL 0         ; Store 2 in this case the argument. Used to test the function and can be changed.  	
-STRING  .STRINGZ "Input a 2 digit decimal number:" ; 
-DIG1    .BLKW 1
-DIG2    .BLKW 1
-NEG48   .FILL -48   ; Store -48 in memory    
-.END
+;------------------------------------------------------------
+; Data Section
+STACK_START .FILL x4000          ; Initial stack pointer address
+MAX         .FILL xC005
+EMPTY       .FILL x4000
+PRIME       .STRINGZ "The number is prime\n"
+NPRIME      .STRINGZ "The number is not prime\n"
+NUM         .FILL 0             ; (Optional test number)
+STRING      .STRINGZ "Input a 2 digit decimal number:"
+DIG1        .BLKW 1
+DIG2        .BLKW 1
+NEG48       .FILL -48           ; Constant for ASCII conversion
 
-
-
+        .END

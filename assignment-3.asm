@@ -7,6 +7,11 @@ MAIN
 ;---------------------------
 ; Checks if a number is prime. Takes input from R0 and returns 1 in R0 if true else returns 0 in R0
 CHECK_PRIME
+    ; Check if input number is 2
+    ADD R0, R0, #-2
+    BRz IS_PRIME_EARLY_RETURN
+    ADD R0, R0, #2
+
     ; Save registers in stack
     ADD R4, R7, #0
     JSR PUSH
@@ -39,7 +44,11 @@ IS_PRIME
 NOT_PRIME
     AND R0, R0, #0
     BR RESTORE_REGS
-    
+
+IS_PRIME_EARLY_RETURN
+    AND R0, R0, #0
+    ADD R0, R0, #0
+    RET
 RESTORE_REGS
     JSR POP
     ADD R3, R4, #0
@@ -125,6 +134,6 @@ STACK_START .FILL x4000
 MAX          .FILL xC005
 EMPTY        .FILL x4000
 
-PRIME .FILL #29
+PRIME .FILL #3571
 .END
 

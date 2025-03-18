@@ -1,10 +1,26 @@
 .ORIG x3000
-
 MAIN
-    LD R0, PRIME ; Answer
-    LD R1, DIVISOR
-LOOP
-    JSR MULTIPLY ; Multiply Divisor * Divisor
+    LD R0, PRIME
+    LD R6, STACK_START  ; Load initial stack pointer (x4000)
+    JSR CHECK_PRIME
+    HALT
+;---------------------------
+; Checks if a number is prime. Takes input from R0 and returns 1 in R0 if true else returns 0 in R0
+CHECK_PRIME
+    ; Save registers in stack
+    ADD R4, R7, #0
+    JSR PUSH
+    ADD R4, R1, #0
+    JSR PUSH
+    ADD R4, R2, #0
+    JSR PUSH
+    ADD R4, R3, #0
+    JSR PUSH
+    ; Load divisor
+    AND R1, R1, #0
+    ADD R1, R1, #2
+CHECK_LOOP
+    JSR SQUARE ; SQUARE Divisor^2
     NOT R2, R2
     ADD R2, R2, #1
     ADD R2, R2, R0 ; Check if Divisor^2 <= N
@@ -13,36 +29,70 @@ LOOP
     ADD R3, R3, #0
     BRz NOT_PRIME
     ADD R1, R1, #1
-    BR LOOP
-    JSR MULTIPLY
+    BR CHECK_LOOP
 
 IS_PRIME
     AND R0, R0, #0
     ADD R0, R0, #1
-    HALT
-    .FILL x0000  ; Fills the next memory location with a harmless value
+    BR RESTORE_REGS
+
 NOT_PRIME
     AND R0, R0, #0
-    HALT
-    .FILL x0000  ; Prevents accidental execution of garbage memory
+    BR RESTORE_REGS
     
-; Multiplication
-MULTIPLY
-    ST R0, SAVE_R0
-    ST R1, SAVE_R1
+RESTORE_REGS
+    JSR POP
+    ADD R3, R4, #0
+
+    JSR POP
+    ADD R2, R4, #0
+
+    JSR POP
+    ADD R1, R4, #0
+
+    JSR POP
+    ADD R7, R4, #0
+    RET
+
+; Squaring value
+SQUARE
+    ; Save the current return address (R7)
+    ADD R4, R7, #0
+    JSR PUSH
+
+    ADD R4, R0, #0
+    JSR PUSH
+
+    ADD R4, R1, #0
+    JSR PUSH
+
     ADD R0, R1, #0
     AND R2, R2, #0 ; Sum
-MULT_LOOP    
+SQUARE_LOOP    
     ADD R2, R2, R1
     ADD R0, R0, #-1
-    BRp MULT_LOOP
-    LD R0, SAVE_R0
-    LD R1, SAVE_R1
+    BRp SQUARE_LOOP
+    
+    JSR POP
+    ADD R1, R4, #0
+
+    JSR POP
+    ADD R0, R4, #0
+
+    JSR POP
+    ADD R7, R4, #0
     RET
 
 MODULO
-    ST R0, SAVE_R0 ; Quotient
-    ST R1, SAVE_R1 ; Divisor
+    ADD R4, R7, #0
+    JSR PUSH
+
+    ADD R4, R0, #0
+    JSR PUSH
+
+    ADD R4, R1, #0
+    JSR PUSH
+
     AND R3, R3, #0 ; Remainder
     NOT R1, R1 ; 
     ADD R1, R1, #1 ; 2's complement
@@ -52,13 +102,29 @@ MOD_LOOP
     ADD R3, R0, #0
     BR MOD_LOOP
 END_MOD
-    LD R0, SAVE_R0
-    LD R1, SAVE_R1
+    JSR POP
+    ADD R1, R4, #0
+
+    JSR POP
+    ADD R0, R4, #0
+
+    JSR POP
+    ADD R7, R4, #0
+    RET
+PUSH
+    ADD R6, R6, #-1      ; Decrement SP
+    STR R4, R6, #0       ; Store value from R4
+    RET
+POP
+    LDR R4, R6, #0       ; Load value into R4
+    ADD R6, R6, #1       ; Increment SP
     RET
 
-PRIME .FILL #131
-DIVISOR .FILL #2
+; Stack Base Address
+STACK_START .FILL x4000
+MAX          .FILL xC005
+EMPTY        .FILL x4000
 
-SAVE_R0 .BLKW 1
-SAVE_R1 .BLKW 1
+PRIME .FILL #29
 .END
+

@@ -29,13 +29,15 @@ readS
         PUTS
 
         ; Read first digit
-        TRAP x23           ; Read character (echoed)
+        GETC               ; Read character from keyboard 
+        OUT                ; Print to screen
         LD   R1, NEG48     ; Load constant -48 (to convert ASCII)
         ADD  R0, R0, R1    ; Convert ASCII to numeric digit
         ST   R0, DIG1      ; Store first digit
 
         ; Read second digit
-        TRAP x23           ; Read character (echoed)
+        GETC               ; Read character from keyboard 
+        OUT                ; Print to screen
         ADD  R0, R0, R1    ; Convert ASCII to numeric digit
         ST   R0, DIG2      ; Store second digit
 
@@ -244,10 +246,10 @@ POP
 STACK_START .FILL x4000          ; Initial stack pointer address
 MAX         .FILL xC005
 EMPTY       .FILL x4000
-PRIME       .STRINGZ "The number is prime\n"
-NPRIME      .STRINGZ "The number is not prime\n"
+PRIME       .STRINGZ "\nThe number is prime\n"
+NPRIME      .STRINGZ "\nThe number is not prime\n"
 NUM         .FILL 0             ; (Optional test number)
-STRING      .STRINGZ "Input a 2 digit decimal number:"
+STRING      .STRINGZ "Input a 2 digit decimal number: "
 DIG1        .BLKW 1
 DIG2        .BLKW 1
 NEG48       .FILL -48           ; Constant for ASCII conversion

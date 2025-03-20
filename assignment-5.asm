@@ -88,142 +88,130 @@ NOTPRIME
 ;              Returns 1 in R0 if prime, 0 otherwise.
 ; Input: R0 (number to check)
 CHECK_PRIME
-        ; Special case: if number is 2, early return
-        ADD  R0, R0, #-2
-        BRz  IS_PRIME_EARLY_RETURN
-        ADD  R0, R0, #2
+    ADD R0, R0, #-2        ; Subtract 2 from the input number
+    BRz IS_PRIME_EARLY_RETURN ; If the number is 2, return 1 (prime)
+    ADD R0, R0, #2         ; Restore original value if not 2
 
-        ; Save registers R7, R1, R2, R3 on the stack
-        ADD  R4, R7, #0
-        JSR  PUSH
-        ADD  R4, R1, #0
-        JSR  PUSH
-        ADD  R4, R2, #0
-        JSR  PUSH
-        ADD  R4, R3, #0
-        JSR  PUSH
+    ; Save registers on the stack (since JSR modifies R7)
+    ADD R4, R7, #0         ; Save return address (R7)
+    JSR PUSH
+    ADD R4, R1, #0         ; Save R1
+    JSR PUSH
+    ADD R4, R2, #0         ; Save R2
+    JSR PUSH
+    ADD R4, R3, #0         ; Save R3
+    JSR PUSH
 
-        ; Initialize divisor to 2 in R1
-        AND  R1, R1, #0
-        ADD  R1, R1, #2
+    ; Initialize divisor to 2
+    AND R1, R1, #0
+    ADD R1, R1, #2         ; R1 = 2
 
 CHECK_LOOP
-        JSR  SQUARE        ; Compute square of divisor (result in R2)
-        ; Compare divisor^2 with N
-        NOT  R2, R2
-        ADD  R2, R2, #1
-        ADD  R2, R2, R0   ; If (divisor^2 - N) is negative then divisor^2 <= N
-        BRn  IS_PRIME     ; If so, no factor found yet: assume prime
+    JSR SQUARE             ; Compute divisor^2
+    NOT R2, R2             ; Negate result for comparison
+    ADD R2, R2, #1         ; Two's complement (negate)
+    ADD R2, R2, R0         ; Check if divisor^2 > number
+    BRn IS_PRIME           ; If divisor^2 > number, stop checking
 
-        JSR  MODULO       ; Compute N modulo divisor (result in R3)
-        ADD  R3, R3, #0   ; Check if remainder is zero
-        BRz  NOT_PRIME    ; If yes, number is not prime
+    JSR MODULO             ; Check if number is divisible by divisor
+    ADD R3, R3, #0         ; Check if remainder is zero
+    BRz NOT_PRIME          ; If remainder is zero, the number is not prime
 
-        ADD  R1, R1, #1   ; Increment divisor
-        BR   CHECK_LOOP
+    ADD R1, R1, #1         ; Increment divisor
+    BR CHECK_LOOP          ; Repeat process with next divisor
 
 IS_PRIME
-        AND  R0, R0, #0
-        ADD  R0, R0, #1   ; Set R0 = 1 (prime)
-        BR   RESTORE_REGS
+    AND R0, R0, #0         ; Set R0 to 1 (indicating prime)
+    ADD R0, R0, #1
+    BR RESTORE_REGS        ; Restore registers and return
 
 NOT_PRIME
-        AND  R0, R0, #0   ; Set R0 = 0 (not prime)
-        BR   RESTORE_REGS
+    AND R0, R0, #0         ; Set R0 to 0 (indicating not prime)
+    BR RESTORE_REGS        ; Restore registers and return
 
 IS_PRIME_EARLY_RETURN
-        ; For number 2, set result as prime (or adjust as desired)
-        AND  R0, R0, #0
-        ADD  R0, R0, #0
-        RET
-; Restore registers
+    AND R0, R0, #0         ; Set R0 to 1 (indicating prime)
+    ADD R0, R0, #1
+    RET                    ; Return immediately
+
 RESTORE_REGS
-        JSR  POP
-        ADD  R3, R4, #0
+    JSR POP                ; Restore R3
+    ADD R3, R4, #0
 
-        JSR  POP
-        ADD  R2, R4, #0
+    JSR POP                ; Restore R2
+    ADD R2, R4, #0
 
-        JSR  POP
-        ADD  R1, R4, #0
+    JSR POP                ; Restore R1
+    ADD R1, R4, #0
 
-        JSR  POP
-        ADD  R7, R4, #0
-        RET
+    JSR POP                ; Restore return address (R7)
+    ADD R7, R4, #0
+    RET                    ; Return to caller
 
-;------------------------------------------------------------
-; Function: SQUARE
-; Description: Computes the square of R1 by repeated addition.
-; Output: R2 contains R1 squared.
+;---------------------------
+; SQUARE - Computes square of R1 (R1 * R1)
+; Input:  R1 (number to square)
+; Output: R2 (result of squaring R1)
+; Uses:   R0 (loop counter), R4 (temporary storage)
 SQUARE
-        ; Save registers R7, R0, R1 on the stack
-        ADD  R4, R7, #0
-        JSR  PUSH
+    ; Save registers before computation
+    ADD R4, R7, #0
+    JSR PUSH
+    ADD R4, R0, #0
+    JSR PUSH
+    ADD R4, R1, #0
+    JSR PUSH
 
-        ADD  R4, R0, #0
-        JSR  PUSH
-
-        ADD  R4, R1, #0
-        JSR  PUSH
-
-        ; Compute square: initialize R0 = R1 and clear R2
-        ADD  R0, R1, #0
-        AND  R2, R2, #0
+    ADD R0, R1, #0        ; Copy R1 into R0 as loop counter
+    AND R2, R2, #0        ; Initialize result (R2) to 0
 
 SQUARE_LOOP    
-        ADD  R2, R2, R1   ; Sum R1 repeatedly
-        ADD  R0, R0, #-1  ; Decrement counter
-        BRp  SQUARE_LOOP
+    ADD R2, R2, R1        ; Add R1 to sum
+    ADD R0, R0, #-1       ; Decrease counter
+    BRp SQUARE_LOOP       ; Loop until R0 reaches zero
 
-        ; Restore registers
-        JSR  POP
-        ADD  R1, R4, #0
+    ; Restore registers after computation
+    JSR POP
+    ADD R1, R4, #0
+    JSR POP
+    ADD R0, R4, #0
+    JSR POP
+    ADD R7, R4, #0
+    RET                    ; Return to caller
 
-        JSR  POP
-        ADD  R0, R4, #0
-
-        JSR  POP
-        ADD  R7, R4, #0
-        RET
-
-;------------------------------------------------------------
-; Function: MODULO
-; Description: Computes the remainder of R0 divided by R1.
-; Output: R3 contains the remainder.
+;---------------------------
+; MODULO - Computes R0 % R1 (remainder after division)
+; Input:  R0 (dividend), R1 (divisor)
+; Output: R3 (remainder)
+; Uses:   R4 (temporary storage)
 MODULO
-        ; Save registers R7, R0, R1 on the stack
-        ADD  R4, R7, #0
-        JSR  PUSH
+    ; Save registers
+    ADD R4, R7, #0
+    JSR PUSH
+    ADD R4, R0, #0
+    JSR PUSH
+    ADD R4, R1, #0
+    JSR PUSH
 
-        ADD  R4, R0, #0
-        JSR  PUSH
+    AND R3, R3, #0        ; Initialize remainder to 0
+    NOT R1, R1            ; Compute -R1 (two's complement)
+    ADD R1, R1, #1
 
-        ADD  R4, R1, #0
-        JSR  PUSH
-
-        AND  R3, R3, #0   ; Clear R3 (remainder)
-
-        ; Compute two's complement of R1 for subtraction
-        NOT  R1, R1
-        ADD  R1, R1, #1
-; Repeated subtraction until remainder is less than quotient
 MOD_LOOP
-        ADD  R0, R0, R1  ; Subtract divisor from dividend
-        BRn  END_MOD     ; If result negative, stop
-        ADD  R3, R0, #0  ; Update remainder
-        BR   MOD_LOOP
+    ADD R0, R0, R1        ; Subtract divisor from dividend
+    BRn END_MOD           ; If negative, stop
+    ADD R3, R0, #0        ; Store remainder
+    BR MOD_LOOP           ; Repeat
 
 END_MOD
-        ; Restore registers
-        JSR  POP
-        ADD  R1, R4, #0
-
-        JSR  POP
-        ADD  R0, R4, #0
-
-        JSR  POP
-        ADD  R7, R4, #0
-        RET
+    ; Restore registers
+    JSR POP
+    ADD R1, R4, #0
+    JSR POP
+    ADD R0, R4, #0
+    JSR POP
+    ADD R7, R4, #0
+    RET                    ; Return remainder in R3
 
 ;------------------------------------------------------------
 ; Function: PUSH

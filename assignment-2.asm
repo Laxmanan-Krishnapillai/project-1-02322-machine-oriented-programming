@@ -12,13 +12,15 @@ readS
         PUTS        ; Call TRAP x22 to print the string in R0
         
         ; Read first digit
-        TRAP x23        ; Read character from keyboard and echo 
+        GETC            ; Read character from keyboard 
+        OUT             ; Print to screen
         LD R1, NEG48    ; Load -48 from memory
         ADD R0, R0, R1  ; Convert ASCII to numeric value by substracting 48
         ST R0, DIG1  ; Store R0 in 
         
         ; Read second digit
-        TRAP x23        ; Read character from keyboard and echo
+        GETC            ; Read character from keyboard 
+        OUT             ; Print to screen
         ADD R0, R0, R1  ; Convert ASCII to numeric value by substracting 48
         ST R0, DIG2  ; Store R0 in 
         

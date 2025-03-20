@@ -134,7 +134,7 @@ IS_PRIME_EARLY_RETURN
         AND  R0, R0, #0
         ADD  R0, R0, #0
         RET
-
+; Restore registers
 RESTORE_REGS
         JSR  POP
         ADD  R3, R4, #0
@@ -204,7 +204,7 @@ MODULO
         ; Compute two's complement of R1 for subtraction
         NOT  R1, R1
         ADD  R1, R1, #1
-
+; Repeated subtraction until remainder is less than quotient
 MOD_LOOP
         ADD  R0, R0, R1  ; Subtract divisor from dividend
         BRn  END_MOD     ; If result negative, stop

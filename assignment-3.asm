@@ -156,5 +156,5 @@ POP
 ;---------------------------
 ; Constants and memory locations
 STACK_START .FILL x4000  ; Stack base address
-PRIME       .FILL #3571  ; Number to check
+PRIME       .FILL #3  ; Number to check
 .END

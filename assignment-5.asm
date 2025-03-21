@@ -90,6 +90,7 @@ NOTPRIME
 CHECK_PRIME
     ADD R0, R0, #-2        ; Subtract 2 from the input number
     BRz IS_PRIME_EARLY_RETURN ; If the number is 2, return 1 (prime)
+    BRn NOT_PRIME_EARLY_RETURN
     ADD R0, R0, #2         ; Restore original value if not 2
 
     ; Save registers on the stack (since JSR modifies R7)
@@ -133,7 +134,9 @@ IS_PRIME_EARLY_RETURN
     AND R0, R0, #0         ; Set R0 to 1 (indicating prime)
     ADD R0, R0, #1
     RET                    ; Return immediately
-
+NOT_PRIME_EARLY_RETURN     ; If the number is less than 2 return 1 (not Prime)
+    AND R0, R0, #0
+    RET
 RESTORE_REGS
     JSR POP                ; Restore R3
     ADD R3, R4, #0
